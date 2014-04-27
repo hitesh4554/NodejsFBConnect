@@ -22,8 +22,7 @@ exports.extendAccessToken=function (req, response) {
   try {
     var body = req.body;
     if (!body || !body.access_token) {
-      var error = 'missing_params';
-      response.end(JSON.stringify({'error': error}));
+      response.end(JSON.stringify({'error': 'missing_params'}));
       return;
     }
 
@@ -53,6 +52,47 @@ exports.extendAccessToken=function (req, response) {
       response.writeHead(200, {'content-type': 'application/json'});
       response.write(JSON.stringify({'long_access_token': longAccessToken}));
       response.end();
+      return;
+    });
+  }
+  catch (e) {
+    console.log('CaughtException: '+e.stack);
+    response.end(JSON.stringify({'error': e}));
+    return;
+  }
+};
+
+/* URL: /user_details
+ * Info: The below function will get the user's details
+ * from Facebook */
+exports.getUserDetails=function (req, response) {
+  try {
+    var body = req.body;
+    if (!body || !body.access_token) {
+      response.end(JSON.stringify({'error': 'missing_params'}));
+      return;
+    }
+
+    var access_token = body.access_token;
+
+    // Setup the parameters to make the API call for GET user details
+    var url =
+      'https://graph.facebook.com/me?fields=id,name,username,picture'+
+      '&access_token='+access_token;
+
+    // Do GET request to get the user details
+    request.get({url:url}, function(err, userResponse, userDetails) {
+      // Handle any errors that occur
+      if (err) {
+        response.end(JSON.stringify({'error': err}));
+        return;
+      }
+      var results = JSON.parse(userDetails);
+      if (results.error) {
+        response.end(JSON.stringify({'error': results.error}));
+        return;
+      }
+      response.end(JSON.stringify(results));
       return;
     });
   }
