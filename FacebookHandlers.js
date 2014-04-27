@@ -13,6 +13,7 @@ var APP_SECRET = FACEBOOK_API_SECRET;
 
 // Facebook API URL Constants
 var TOKEN_URL = 'https://graph.facebook.com/oauth/access_token';
+var ALBUM_URL = 'https://graph.facebook.com/me/albums';
 
 
 /* URL: /extend_access_token
@@ -102,3 +103,60 @@ exports.getUserDetails=function (req, response) {
     return;
   }
 };
+
+/* URL: /create_album
+ * Info: The below function will create an album in
+ * Facebook */
+exports.createAlbum=function (req, response) {
+  try {
+  	var body = req.body;
+  	if (!body || !body.name || !body.description || !body.access_token) {
+      response.end(JSON.stringify({'error': 'missing_params'}));
+      return;
+    }
+
+    var name = body.name;
+    var description = body.description;
+    var access_token = body.access_token;
+
+    // Setup the parameters to make the API call for Album
+    var params = {
+      name: name,
+      message: description,
+      access_token: access_token,
+      privacy: {'value':'EVERYONE'}
+    };
+
+    request.post({url:ALBUM_URL,qs:params}, function(err, resp, fb_album) {
+      if (err) {
+        console.log(err);
+        response.end(JSON.stringify({'error': err}));
+        return;
+      }
+      try
+  		{
+        fb_album = JSON.parse(fb_album);
+        if (fb_album.error) {
+          console.log(fb_album.error);
+          response.end(JSON.stringify({'error': fb_album.error}));
+          return;
+        }
+        if (fb_album.id) {
+          response.end(JSON.stringify(fb_album));
+          return;
+        }
+      }
+	    catch (e)
+	    {
+	    	console.log('json_parse_error: '+e.stack);
+	      response.end(JSON.stringify({'error': 'json_parse_error'}));
+	      return;
+	    }
+    });
+  }
+  catch (e) {
+    console.log('CaughtException: '+e.stack);
+    response.end(JSON.stringify({'error': e}));
+    return;
+  }
+}
