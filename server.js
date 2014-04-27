@@ -2,7 +2,8 @@
 var express = require('express'),
     http = require('http');
 
-//Custom Modules here
+//Custom Modules
+var FacebookHandlers=require("./FacebookHandlers");
 
 //Instantiate express
 var app = express();
@@ -25,6 +26,7 @@ app.configure(function () {
 });
 
 // All routing related configuration over here
+app.get('/extend_access_token', FacebookHandlers.extendAccessToken);
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
