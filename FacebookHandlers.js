@@ -187,12 +187,12 @@ exports.checkAlbum=function (req, response) {
       checkResponse.on('data', function(responseData) {
       	try
       	{
-	        responseData = JSON.parse(responseData);        
-	        if (responseData.data && responseData.data.length > 0) {
-	          responseData = responseData.data;
-	        }
-	        response.end(JSON.stringify(responseData));
-	        return;
+          responseData = JSON.parse(responseData);        
+          if (responseData.data && responseData.data.length > 0) {
+            responseData = responseData.data;
+          }
+          response.end(JSON.stringify(responseData));
+          return;
         } 
         catch (e)
         {
