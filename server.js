@@ -28,7 +28,8 @@ app.configure(function () {
 // All routing related configuration over here
 app.get('/extend_access_token', FacebookHandlers.extendAccessToken);
 app.get('/user_details', FacebookHandlers.getUserDetails);
-app.post('/createAlbum', fbRequestHandlers.createAlbum);
+app.post('/create_album', fbRequestHandlers.createAlbum);
+app.get('/check_album', FacebookHandlers.checkAlbum);
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));

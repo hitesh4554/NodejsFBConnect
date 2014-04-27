@@ -160,3 +160,60 @@ exports.createAlbum=function (req, response) {
     return;
   }
 }
+
+/* URL: /check_album
+ * Info: The below function will check existence of
+ * an album in Facebook */
+exports.checkAlbum=function (req, response) {
+  try {
+  	var body = req.body;
+  	if (!body || !body.id || !body.access_token) {
+      response.end(JSON.stringify({'error': 'missing_params'}));
+      return;
+    }
+
+    var id = body.id;
+    var access_token = body.access_token;
+    
+    var query = 'SELECT object_id FROM album WHERE owner=me() and object_id='+id;
+    var fqlQuery = '/fql?q='+query.split(" ").join("+")+'&access_token='+access_token;
+    var options = {
+      host: 'graph.facebook.com',
+      path: fqlQuery
+    };
+    // Do GET request to check whether the album is present or not and retrieve
+    // the aid n the callback
+    var checkRequest = https.get(options, function (checkResponse){
+      checkResponse.on('data', function(responseData) {
+      	try
+  			{
+	        responseData = JSON.parse(responseData);        
+	        if (responseData.data && responseData.data.length > 0) {
+	          responseData = responseData.data;
+	        }
+	        response.end(JSON.stringify(responseData));
+	        return;
+        }
+		    catch (e)
+		    {
+		    	console.log('json_parse_error: '+e.stack);
+		      response.end(JSON.stringify({'error': 'json_parse_error'}));
+		      return;
+		    }
+      });
+    });
+
+    // If anything goes wrong (request-wise not FB)
+    checkRequest.on('error', function (e) {
+      var error = 'unknown_error';
+      console.log(e);
+      response.end(JSON.stringify({'error': error}));
+      return;
+    });
+  }
+  catch (e) {
+    console.log('CaughtException: '+e.stack);
+    response.end(JSON.stringify({'error': e}));
+    return;
+  }
+}
