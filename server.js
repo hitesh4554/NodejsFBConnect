@@ -30,6 +30,7 @@ app.get('/extend_access_token', FacebookHandlers.extendAccessToken);
 app.get('/user_details', FacebookHandlers.getUserDetails);
 app.post('/create_album', fbRequestHandlers.createAlbum);
 app.get('/check_album', FacebookHandlers.checkAlbum);
+app.post('/upload_photos', fbRequestHandlers.uploadPhotos);
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
