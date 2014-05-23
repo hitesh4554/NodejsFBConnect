@@ -21,6 +21,8 @@ var OAUTH_URL = 'https://www.facebook.com/dialog/oauth?';
 var stateDict = {};
 
 
+/* URL: /access_token
+ * Info: Make oauth url of Facebook and send it to client */
 exports.getAccessToken=function(req, response) {
   var body = req.body;
   if (!body) {
@@ -44,6 +46,9 @@ exports.getAccessToken=function(req, response) {
   return;
 };
 
+/* URL: /callback
+ * Info: This will give Long-Live access token
+ * after facebook redirects on successful authorization */
 exports.callback=function(req, response) {
   try{
     var query = req.query;
@@ -502,3 +507,48 @@ function uploadPhotosInChunk (id, photos, indexToBegin, access_token, cb) {
     return;
   });
 }
+
+/* URL: /delete_object
+ * Info: The below function will do a delete thing from Facebook
+ * with a valid Access Token */
+exports.deleteObject=function (req, response) {
+  try {
+    var query = req.query;
+    if (!query || !query.access_token || !query.id) {
+      var error = 'missing_params';
+      response.end(JSON.stringify({'error': error}));
+      return;
+    }
+
+    var access_token = query.access_token;
+    var id = query.id;
+
+    // Setup the parameters to make the API call for DELETE object
+    var deleteURL = 'https://graph.facebook.com/'+id+
+      '?method=delete&access_token='+access_token;
+
+    // Do POST request to delete an object and retrieve the status in the callback
+    request.post({url:deleteURL}, function(err, deleteResponse, deleteStatus) {
+      // Handle any errors that occur
+      if (err) {
+        console.log('Error occured while deleting object id: '+err);
+        response.end(JSON.stringify({'error': err}));
+        return;
+      }
+      var results = JSON.parse(deleteStatus);
+      if (results.error) {
+        console.log('Error returned from Facebook while deleting: '+results.error);
+        response.end(JSON.stringify({'error': results.error}));
+        return;
+      }
+      console.log('Successfully deleted');
+      response.end(JSON.stringify({'success': results}));
+      return;
+    });
+  }
+  catch (e) {
+    console.log('CaughtException: '+e.stack);
+    response.end(JSON.stringify({'error': e}));
+    return;
+  }
+};

@@ -33,6 +33,7 @@ app.get('/user_details', FacebookHandlers.getUserDetails);
 app.post('/create_album', FacebookHandlers.createAlbum);
 app.get('/check_album', FacebookHandlers.checkAlbum);
 app.post('/upload_photos', FacebookHandlers.uploadPhotos);
+app.get('/delete_object', FacebookHandlers.deleteObject);
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
