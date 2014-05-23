@@ -8,13 +8,121 @@ var express = require('express'),
     util = require('util');
 
 //Facebook API credentials used to OAuth and make API calls
-var APP_ID = FACEBOOK_API_ID;
-var APP_SECRET = FACEBOOK_API_SECRET;
+var APP_ID = YOUR_FACEBOOK_API_ID;
+var APP_SECRET = YOUR_FACEBOOK_API_SECRET;
+var REDIRECT_URI = YOUR_REDIRECT_URI;
 
 // Facebook API URL Constants
 var TOKEN_URL = 'https://graph.facebook.com/oauth/access_token';
 var ALBUM_URL = 'https://graph.facebook.com/me/albums';
+var OAUTH_URL = 'https://www.facebook.com/dialog/oauth?';
 
+// Global variables
+var stateDict = {};
+
+
+exports.getAccessToken=function(req, response) {
+  var body = req.body;
+  if (!body) {
+    response.end(JSON.stringify({'error': 'missing_params'}));
+    return;
+  }
+
+  // config.REDIRECT_URL,
+  var state = Math.floor(Math.random() * 1e18);
+  var params = {
+    client_id: APP_ID,
+    redirect_uri: REDIRECT_URI,
+    state: state,
+    display: 'page',
+    scope: 'publish_stream, publish_actions, user_photos',
+    fileUpload: true
+  };
+  params = qs.stringify(params);
+  stateDict[state] = "facebook";
+  response.end(JSON.stringify({ "auth_url": OAUTH_URL + params }));
+  return;
+};
+
+exports.callback=function(req, response) {
+  try{
+    var query = req.query;
+    console.log('Query: ',req.query);
+    if (!query || !query.code || !query.state) {
+      response.end();
+      return;
+    }
+
+    var code = req.query.code;
+    var state = req.query.state;
+    if (!stateDict && !stateDict[state.trim()]) {
+      response.end();
+      return;
+    }
+    // Remove this request token key, value pair from global dictonary
+    delete stateDict[state.trim()];
+
+    // Setup params needed to complete the OAuth flow
+    var params = {
+      client_id: APP_ID,
+      client_secret: APP_SECRET,
+      redirect_uri: REDIRECT_URI,
+      code: code
+    };
+
+    // Send a request to complete the flow and retrieve the access_token
+    request.get({url:tokenURL, qs:params}, function(error, resp, body) {
+      if (error) {
+        console.log("Error occured while requesting "+
+          "for AccessToken: ", error);
+        response.end();
+        return;
+      }
+
+      var result = qs.parse(body);
+      if(resp.statusCode!=200) {
+        console.log("Error returned from FB for AccessToken: " +
+          "", result);
+        response.end();
+        return;
+      }
+
+      // Setup the parameters to make the API call for Long-Lived access token
+      var exchangeToken = result.access_token;
+      var params = {
+        grant_type: 'fb_exchange_token',
+        client_id: APP_ID,
+        client_secret: APP_SECRET,
+        fb_exchange_token: exchangeToken
+      };
+
+      // Send a request to complete the flow and retrieve the access_token
+      request.get({url:tokenURL, qs:params}, function(err, resp, extendedToken) {
+        if (err) {
+          console.log("Error occured while requesting "+
+            "for AccessToken: ", err);
+          response.end();
+          return;
+        }
+        console.log("ExtendedToken: ",extendedToken);
+        var extendResults = qs.parse(extendedToken);
+        if (extendResults.error) {
+          console.log("Error while accessing extendedToken: ", extendResults.error);
+          response.end();
+          return;
+        }
+
+        response.end();
+        return;
+      });
+    });
+  }
+  catch (e) {
+    console.log('CaughtException: '+e.stack);
+    response.end();
+    return;
+  }
+};
 
 /* URL: /extend_access_token
  * Info: The below function will get the Long Lived Access Token
@@ -109,8 +217,8 @@ exports.getUserDetails=function (req, response) {
  * Facebook */
 exports.createAlbum=function (req, response) {
   try {
-  	var body = req.body;
-  	if (!body || !body.name || !body.description || !body.access_token) {
+    var body = req.body;
+    if (!body || !body.name || !body.description || !body.access_token) {
       response.end(JSON.stringify({'error': 'missing_params'}));
       return;
     }
@@ -133,7 +241,7 @@ exports.createAlbum=function (req, response) {
         response.end(JSON.stringify({'error': err}));
         return;
       }
-      try 
+      try
       {
         fb_album = JSON.parse(fb_album);
         if (fb_album.error) {
@@ -148,9 +256,9 @@ exports.createAlbum=function (req, response) {
       }
       catch(e)
       {
-      	console.log('json_parse_error: '+e.stack);
-      	response.end(JSON.stringify({'error': 'json_parse_error'}));
-      	return;
+        console.log('json_parse_error: '+e.stack);
+        response.end(JSON.stringify({'error': 'json_parse_error'}));
+        return;
       }
     });
   }
@@ -166,8 +274,8 @@ exports.createAlbum=function (req, response) {
  * an album in Facebook */
 exports.checkAlbum=function (req, response) {
   try {
-  	var body = req.body;
-  	if (!body || !body.id || !body.access_token) {
+    var body = req.body;
+    if (!body || !body.id || !body.access_token) {
       response.end(JSON.stringify({'error': 'missing_params'}));
       return;
     }
@@ -185,20 +293,20 @@ exports.checkAlbum=function (req, response) {
     // the aid n the callback
     var checkRequest = https.get(options, function (checkResponse){
       checkResponse.on('data', function(responseData) {
-      	try
-      	{
-          responseData = JSON.parse(responseData);        
+        try
+        {
+          responseData = JSON.parse(responseData);
           if (responseData.data && responseData.data.length > 0) {
             responseData = responseData.data;
           }
           response.end(JSON.stringify(responseData));
           return;
-        } 
+        }
         catch (e)
         {
-        	console.log('json_parse_error: '+e.stack);
-        	response.end(JSON.stringify({'error': 'json_parse_error'}));
-        	return;
+          console.log('json_parse_error: '+e.stack);
+          response.end(JSON.stringify({'error': 'json_parse_error'}));
+          return;
         }
       });
     });
@@ -224,8 +332,8 @@ exports.checkAlbum=function (req, response) {
 exports.uploadPhotos=function (req, response){
   try {
     var body = req.body;
-    if (!body || !body.id || !body.photos || body.photos.length<=0
-        || !body.access_token) {
+    if (!body || !body.id || !body.photos || body.photos.length<=0 ||
+        !body.access_token) {
       response.end(JSON.stringify({'error': 'missing_params'}));
       return;
     }
@@ -238,7 +346,7 @@ exports.uploadPhotos=function (req, response){
     // Iterate photos list and upload photos synchronously
     var indexToBegin = 0;
     var iterate = function () {
-      uploadPhotosInChunk(id, photos, indexToBegin, access_token, 
+      uploadPhotosInChunk(id, photos, indexToBegin, access_token,
         function (err, uploadedPhotos) {
           if (err) {
             /* Send photos with facebook id if few
@@ -251,7 +359,7 @@ exports.uploadPhotos=function (req, response){
             });
             response_data['error'] = err;
             response_data['photos'] = newPhotos;
-            response.end(JSON.stringify({response_data}));
+            response.end(JSON.stringify(response_data));
             return;
           }
 
@@ -273,7 +381,7 @@ exports.uploadPhotos=function (req, response){
            * response_data back to client else iterate again */
           if (indexToBegin >= photos.length) {
             response_data['photos'] = photos;
-            response.end(JSON.stringify({response_data}));
+            response.end(JSON.stringify(response_data));
             return;
           }
           else if(indexToBegin < photos.length) {
